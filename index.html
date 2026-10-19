@@ -167,7 +167,6 @@
     </div>
     <p class="sub-title reveal">TOOLS AND SKILLS</p>
     <div class="skills-carousel">
-      <button class="skills-arrow" type="button" data-scroll="-1" aria-label="Geser tools ke kiri">&lsaquo;</button>
       <div class="skills-track" id="skills-track" tabindex="0" aria-label="Daftar tools dan skills">
         <article class="skill-item">
           <img src="Image/game-maker-studio-2-logo.avif" alt="GameMaker" class="s-icon">
@@ -220,7 +219,6 @@
           <p class="skill-description">Bahasa pemrograman serbaguna untuk aplikasi, otomasi, dan pengolahan data.</p>
         </article>
       </div>
-      <button class="skills-arrow" type="button" data-scroll="1" aria-label="Geser tools ke kanan">&rsaquo;</button>
     </div>
   </div>
 </section>
@@ -264,14 +262,94 @@
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
   const skillsTrack = document.querySelector('#skills-track');
-  document.querySelectorAll('.skills-arrow').forEach(button => {
-    button.addEventListener('click', () => {
-      skillsTrack.scrollBy({
-        left: Number(button.dataset.scroll) * skillsTrack.clientWidth * 0.8,
-        behavior: 'smooth'
-      });
-    });
+  const skillCards = Array.from(skillsTrack.children);
+  skillCards.forEach(card => {
+    const clone = card.cloneNode(true);
+    clone.setAttribute('aria-hidden', 'true');
+    skillsTrack.appendChild(clone);
   });
+
+  let skillsLoopWidth = 0;
+  let skillsLastFrame = 0;
+  let skillsPaused = false;
+  let skillsDragging = false;
+  let skillsDragActivated = false;
+  let skillsPointerId = null;
+  let skillsDragStartX = 0;
+  let skillsDragStartY = 0;
+  let skillsDragStartScroll = 0;
+  const skillsScrollSpeed = 0.03;
+  const reduceSkillsMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const measureSkillsLoop = () => {
+    const firstCard = skillsTrack.firstElementChild;
+    const firstClone = skillsTrack.children[skillCards.length];
+    skillsLoopWidth = firstClone.getBoundingClientRect().left - firstCard.getBoundingClientRect().left;
+    skillsTrack.scrollLeft = skillsLoopWidth;
+  };
+
+  const normalizeSkillsScroll = () => {
+    if (!skillsLoopWidth) return;
+    if (skillsTrack.scrollLeft <= 0) {
+      skillsTrack.scrollLeft += skillsLoopWidth;
+    } else if (skillsTrack.scrollLeft >= skillsTrack.scrollWidth - skillsTrack.clientWidth) {
+      skillsTrack.scrollLeft -= skillsLoopWidth;
+    }
+  };
+
+  const animateSkills = timestamp => {
+    if (skillsLastFrame && !skillsPaused && !reduceSkillsMotion.matches) {
+      skillsTrack.scrollLeft += (timestamp - skillsLastFrame) * skillsScrollSpeed;
+      normalizeSkillsScroll();
+    }
+    skillsLastFrame = timestamp;
+    requestAnimationFrame(animateSkills);
+  };
+
+  skillsTrack.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'mouse' && event.pointerType !== 'touch') return;
+    skillsDragging = true;
+    skillsDragActivated = event.pointerType === 'mouse';
+    skillsPaused = true;
+    skillsPointerId = event.pointerId;
+    skillsDragStartX = event.clientX;
+    skillsDragStartY = event.clientY;
+    skillsDragStartScroll = skillsTrack.scrollLeft;
+    skillsTrack.classList.add('is-dragging');
+    if (skillsDragActivated) {
+      skillsTrack.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+  });
+  skillsTrack.addEventListener('pointermove', event => {
+    if (!skillsDragging || event.pointerId !== skillsPointerId) return;
+    if (!skillsDragActivated) {
+      const deltaX = event.clientX - skillsDragStartX;
+      const deltaY = event.clientY - skillsDragStartY;
+      if (Math.abs(deltaX) <= Math.abs(deltaY) || Math.abs(deltaX) < 6) return;
+      skillsDragActivated = true;
+      skillsTrack.setPointerCapture(event.pointerId);
+    }
+    skillsTrack.scrollLeft = skillsDragStartScroll - (event.clientX - skillsDragStartX);
+    normalizeSkillsScroll();
+    if (event.pointerType === 'touch') event.preventDefault();
+  });
+
+  const finishSkillsDrag = event => {
+    if (!skillsDragging || event.pointerId !== skillsPointerId) return;
+    skillsDragging = false;
+    skillsDragActivated = false;
+    skillsPointerId = null;
+    skillsTrack.classList.remove('is-dragging');
+    skillsPaused = false;
+  };
+
+  skillsTrack.addEventListener('pointerup', finishSkillsDrag);
+  skillsTrack.addEventListener('pointercancel', finishSkillsDrag);
+  skillsTrack.addEventListener('scroll', normalizeSkillsScroll, { passive: true });
+  window.addEventListener('resize', measureSkillsLoop);
+  measureSkillsLoop();
+  requestAnimationFrame(animateSkills);
 </script>
 </body>
 </html>
