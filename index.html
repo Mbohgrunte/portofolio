@@ -387,7 +387,26 @@
 
   backgroundMusic.addEventListener('play', updateMusicPlayer);
   backgroundMusic.addEventListener('pause', updateMusicPlayer);
-  backgroundMusic.play().catch(updateMusicPlayer);
+
+  const startMusicAfterInteraction = event => {
+    if (event.target instanceof Element && event.target.closest('#music-toggle')) return;
+    window.removeEventListener('pointerdown', startMusicAfterInteraction, true);
+    window.removeEventListener('keydown', startMusicAfterInteraction, true);
+    backgroundMusic.play().catch(error => {
+      updateMusicPlayer();
+      if (error.name !== 'NotAllowedError') console.error('Unable to start background music.', error);
+    });
+  };
+
+  backgroundMusic.play().catch(error => {
+    updateMusicPlayer();
+    if (error.name === 'NotAllowedError') {
+      window.addEventListener('pointerdown', startMusicAfterInteraction, true);
+      window.addEventListener('keydown', startMusicAfterInteraction, true);
+    } else {
+      console.error('Unable to start background music.', error);
+    }
+  });
 </script>
 </body>
 </html>
