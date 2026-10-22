@@ -157,6 +157,43 @@
 
 <hr class="accent-divider" />
 
+<section id="mini-games">
+  <div class="container">
+    <h2 class="section-title reveal">2048 MINI GAME</h2>
+    <div class="game-panel reveal">
+      <div class="game-topbar">
+        <p class="game-instructions">Gabungkan angka yang sama dan capai tile 2048</p>
+        <div class="game-scores">
+          <div class="game-score">
+            <span>Score</span>
+            <strong id="game-score">0</strong>
+          </div>
+          <div class="game-score">
+            <span>Best</span>
+            <strong id="game-best">0</strong>
+          </div>
+        </div>
+      </div>
+      <div class="game-actions">
+        <p id="game-status" class="game-status" aria-live="polite">Pakai tombol panah atau swipe untuk bermain.</p>
+        <div class="game-buttons">
+          <button class="game-button" id="game-undo" type="button" disabled>Undo</button>
+          <button class="game-button game-button-primary" id="game-new" type="button">New Game</button>
+        </div>
+      </div>
+      <div class="game-board" id="game-board" role="grid" aria-label="Papan 2048, gunakan tombol panah untuk menggeser" tabindex="0"></div>
+      <div class="game-direction-controls" aria-label="Kontrol arah">
+        <button class="game-direction" type="button" data-game-move="up" aria-label="Geser ke atas">&#8593;</button>
+        <button class="game-direction" type="button" data-game-move="left" aria-label="Geser ke kiri">&#8592;</button>
+        <button class="game-direction" type="button" data-game-move="down" aria-label="Geser ke bawah">&#8595;</button>
+        <button class="game-direction" type="button" data-game-move="right" aria-label="Geser ke kanan">&#8594;</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="accent-divider" />
+
 <section id="skills">
   <div class="container">
     <h2 class="section-title reveal">WHY HIRE ME</h2>
@@ -268,6 +305,208 @@
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
   }, { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  const gameBoardElement = document.querySelector('#game-board');
+  const gameScoreElement = document.querySelector('#game-score');
+  const gameBestElement = document.querySelector('#game-best');
+  const gameStatusElement = document.querySelector('#game-status');
+  const gameUndoButton = document.querySelector('#game-undo');
+  const gameBestKey = 'portfolio-2048-best';
+  const gameCells = [];
+  let gameBoard = Array(16).fill(0);
+  let gameScore = 0;
+  let gameBest = 0;
+  let gamePreviousState = null;
+  let gameWon = false;
+  let gameTouchStart = null;
+
+  for (let index = 0; index < 16; index += 1) {
+    const cell = document.createElement('div');
+    cell.className = 'game-tile';
+    cell.setAttribute('role', 'gridcell');
+    gameBoardElement.appendChild(cell);
+    gameCells.push(cell);
+  }
+
+  try {
+    gameBest = Number(localStorage.getItem(gameBestKey)) || 0;
+  } catch (error) {
+    gameStatusElement.textContent = 'Skor terbaik tidak dapat disimpan di browser ini.';
+    console.error('Unable to read the saved 2048 best score.', error);
+  }
+
+  const renderGame = (newTileIndex = -1) => {
+    gameCells.forEach((cell, index) => {
+      const value = gameBoard[index];
+      cell.textContent = value || '';
+      cell.dataset.value = value || '0';
+      cell.classList.toggle('game-tile-new', index === newTileIndex);
+      cell.setAttribute(
+        'aria-label',
+        `Baris ${Math.floor(index / 4) + 1}, kolom ${(index % 4) + 1}: ${value || 'kosong'}`
+      );
+    });
+    gameScoreElement.textContent = gameScore;
+    gameBestElement.textContent = gameBest;
+    gameUndoButton.disabled = !gamePreviousState;
+  };
+
+  const addGameTile = () => {
+    const emptyCells = gameBoard.reduce((empty, value, index) => {
+      if (!value) empty.push(index);
+      return empty;
+    }, []);
+    if (!emptyCells.length) return -1;
+    const index = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    gameBoard[index] = Math.random() < 0.9 ? 2 : 4;
+    return index;
+  };
+
+  const hasGameMoves = () => {
+    for (let index = 0; index < gameBoard.length; index += 1) {
+      if (!gameBoard[index]) return true;
+      if (index % 4 < 3 && gameBoard[index] === gameBoard[index + 1]) return true;
+      if (index < 12 && gameBoard[index] === gameBoard[index + 4]) return true;
+    }
+    return false;
+  };
+
+  const saveGameBest = () => {
+    if (gameScore <= gameBest) return;
+    gameBest = gameScore;
+    try {
+      localStorage.setItem(gameBestKey, String(gameBest));
+    } catch (error) {
+      gameStatusElement.textContent = 'Skor terbaik tidak dapat disimpan di browser ini.';
+      console.error('Unable to save the 2048 best score.', error);
+    }
+  };
+
+  const startNewGame = () => {
+    gameBoard = Array(16).fill(0);
+    gameScore = 0;
+    gamePreviousState = null;
+    gameWon = false;
+    addGameTile();
+    const newTileIndex = addGameTile();
+    gameStatusElement.textContent = 'Gunakan tombol panah atau swipe untuk bermain.';
+    renderGame(newTileIndex);
+  };
+
+  const moveGame = direction => {
+    const previousBoard = [...gameBoard];
+    const previousScore = gameScore;
+    const lines = [];
+
+    for (let line = 0; line < 4; line += 1) {
+      const indices = [];
+      for (let offset = 0; offset < 4; offset += 1) {
+        if (direction === 'left' || direction === 'right') {
+          indices.push(line * 4 + (direction === 'left' ? offset : 3 - offset));
+        } else {
+          indices.push((direction === 'up' ? offset : 3 - offset) * 4 + line);
+        }
+      }
+      lines.push(indices);
+    }
+
+    let gainedScore = 0;
+    lines.forEach(indices => {
+      const values = indices.map(index => gameBoard[index]).filter(Boolean);
+      const mergedValues = [];
+      for (let index = 0; index < values.length; index += 1) {
+        if (values[index] === values[index + 1]) {
+          const mergedValue = values[index] * 2;
+          mergedValues.push(mergedValue);
+          gainedScore += mergedValue;
+          index += 1;
+        } else {
+          mergedValues.push(values[index]);
+        }
+      }
+      indices.forEach((cellIndex, offset) => {
+        gameBoard[cellIndex] = mergedValues[offset] || 0;
+      });
+    });
+
+    if (gameBoard.every((value, index) => value === previousBoard[index])) return;
+
+    gamePreviousState = {
+      board: previousBoard,
+      score: previousScore,
+      won: gameWon
+    };
+    gameScore += gainedScore;
+    saveGameBest();
+    const newTileIndex = addGameTile();
+    const reached2048 = !gameWon && gameBoard.some(value => value >= 2048);
+    if (reached2048) gameWon = true;
+    gameStatusElement.textContent = reached2048
+      ? 'Hebat! Kamu berhasil mencapai 2048!'
+      : hasGameMoves()
+        ? 'Gunakan tombol panah atau swipe untuk bermain.'
+        : 'Game over! Tekan New Game untuk bermain lagi.';
+    renderGame(newTileIndex);
+  };
+
+  const restorePreviousMove = () => {
+    if (!gamePreviousState) return;
+    gameBoard = gamePreviousState.board;
+    gameScore = gamePreviousState.score;
+    gameWon = gamePreviousState.won;
+    gamePreviousState = null;
+    gameStatusElement.textContent = 'Langkah terakhir dibatalkan.';
+    renderGame();
+  };
+
+  const gameDirectionKeys = {
+    ArrowUp: 'up',
+    ArrowDown: 'down',
+    ArrowLeft: 'left',
+    ArrowRight: 'right',
+    w: 'up',
+    W: 'up',
+    s: 'down',
+    S: 'down',
+    a: 'left',
+    A: 'left',
+    d: 'right',
+    D: 'right'
+  };
+
+  gameBoardElement.addEventListener('keydown', event => {
+    const direction = gameDirectionKeys[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    moveGame(direction);
+  });
+  document.querySelectorAll('[data-game-move]').forEach(button => {
+    button.addEventListener('click', () => moveGame(button.dataset.gameMove));
+  });
+  document.querySelector('#game-new').addEventListener('click', startNewGame);
+  gameUndoButton.addEventListener('click', restorePreviousMove);
+
+  gameBoardElement.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch') return;
+    gameTouchStart = { x: event.clientX, y: event.clientY };
+    gameBoardElement.setPointerCapture(event.pointerId);
+  });
+  gameBoardElement.addEventListener('pointerup', event => {
+    if (!gameTouchStart || event.pointerType !== 'touch') return;
+    const deltaX = event.clientX - gameTouchStart.x;
+    const deltaY = event.clientY - gameTouchStart.y;
+    gameTouchStart = null;
+    if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 24) return;
+    moveGame(
+      Math.abs(deltaX) > Math.abs(deltaY)
+        ? deltaX > 0 ? 'right' : 'left'
+        : deltaY > 0 ? 'down' : 'up'
+    );
+  });
+  gameBoardElement.addEventListener('pointercancel', () => {
+    gameTouchStart = null;
+  });
+  startNewGame();
 
   const skillsTrack = document.querySelector('#skills-track');
   const skillCards = Array.from(skillsTrack.children);

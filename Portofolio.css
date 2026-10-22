@@ -188,6 +188,89 @@
     color: var(--accent2); border: 1px solid var(--accent2); padding: 2px 8px;
   }
 
+  #mini-games { padding: 6rem 0; background: var(--surface); }
+  .game-panel {
+    width: min(100%, 460px); margin: 0 auto; padding: 1.25rem;
+    background: var(--bg); border: 1px solid var(--border);
+  }
+  .game-topbar, .game-actions {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .game-instructions {
+    margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.5;
+  }
+  .game-scores { display: flex; gap: 0.5rem; }
+  .game-score {
+    min-width: 66px; padding: 0.35rem 0.6rem; text-align: center;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .game-score span {
+    display: block; color: var(--muted); font-family: 'Space Mono', monospace;
+    font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .game-score strong { color: var(--text); font-size: 1rem; }
+  .game-actions { margin: 1rem 0; }
+  .game-status { margin: 0; color: var(--muted); font-size: 0.7rem; line-height: 1.5; }
+  .game-buttons { display: flex; flex: 0 0 auto; gap: 0.5rem; }
+  .game-button, .game-direction {
+    border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+    color: var(--text); font-family: 'Space Mono', monospace;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .game-button { padding: 0.45rem 0.65rem; font-size: 0.65rem; }
+  .game-button-primary { border-color: var(--accent); color: var(--accent); }
+  .game-button:hover:not(:disabled), .game-direction:hover {
+    border-color: var(--accent); color: var(--accent);
+  }
+  .game-button:disabled { cursor: not-allowed; opacity: 0.45; }
+  .game-button:focus-visible, .game-direction:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .game-board {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(0.35rem, 1.5vw, 0.6rem); padding: clamp(0.4rem, 1.5vw, 0.65rem);
+    aspect-ratio: 1; background: var(--surface2); border: 1px solid var(--border);
+    touch-action: none; outline: none;
+  }
+  .game-board:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  .game-tile {
+    display: flex; align-items: center; justify-content: center; min-width: 0;
+    background: #202020; color: var(--text); font-family: 'Bebas Neue', cursive;
+    font-size: clamp(1.35rem, 7vw, 2.5rem); line-height: 1;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+  }
+  .game-tile[data-value="2"] { background: #343434; }
+  .game-tile[data-value="4"] { background: #4b3434; }
+  .game-tile[data-value="8"] { background: #722d2d; color: #fff; }
+  .game-tile[data-value="16"] { background: #923030; color: #fff; }
+  .game-tile[data-value="32"] { background: #b93434; color: #fff; }
+  .game-tile[data-value="64"] { background: #f04040; color: #fff; }
+  .game-tile[data-value="128"],
+  .game-tile[data-value="256"],
+  .game-tile[data-value="512"] { background: #bd3434; color: #fff; font-size: clamp(1.1rem, 6vw, 2rem); }
+  .game-tile[data-value="1024"],
+  .game-tile[data-value="2048"] { background: #f04040; color: #fff; font-size: clamp(0.95rem, 5vw, 1.7rem); }
+  .game-tile.game-tile-new { animation: game-tile-pop 0.18s ease-out; }
+  .game-direction-controls { display: none; }
+  @keyframes game-tile-pop {
+    from { transform: scale(0.82); }
+    to { transform: scale(1); }
+  }
+
+  @media (max-width: 575.98px) {
+    .game-panel { padding: 0.85rem; }
+    .game-topbar { align-items: flex-start; }
+    .game-instructions { max-width: 150px; font-size: 0.7rem; }
+    .game-score { min-width: 56px; padding: 0.3rem 0.4rem; }
+    .game-actions { align-items: flex-start; }
+    .game-buttons { flex-direction: column; }
+    .game-direction-controls {
+      display: grid; grid-template-columns: repeat(4, 44px);
+      justify-content: center; gap: 0.5rem; margin-top: 0.75rem;
+    }
+    .game-direction { min-height: 42px; color: var(--accent); font-size: 1.2rem; }
+  }
+
   #skills { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6rem 0; }
   .why-card {
     background: var(--bg); border: 1px solid var(--border);
